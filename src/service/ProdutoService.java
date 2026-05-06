@@ -6,14 +6,35 @@ import infra.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import domain.Preco;
 
 public class ProdutoService implements ServiceInterface {
 
     @Override
     public void add(EntityInterface entity) {
         IO.println("Salvando o produto");
+        Produto produto = (Produto) entity;
+        
+        // Cria o registro inicial do histórico de preços
+        Preco precoInicial = new Preco();
+        precoInicial.setPreco(produto.getPreco());
+        precoInicial.setDataAtual(new Date());
+        precoInicial.setProduto(produto);
+        produto.getHistoricoDePrecos().add(precoInicial);
+        
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Transaction tx = session.beginTransaction();
+            session.persist(produto);
+            tx.commit();
+        }
+    }
+
+    @Override
+    public void salvarPreco(EntityInterface entity) {
+        IO.println("Salvando o preço");
         Produto produto = (Produto) entity;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Transaction tx = session.beginTransaction();
@@ -47,7 +68,16 @@ public class ProdutoService implements ServiceInterface {
             System.out.printf("Nome: %s\n", p.getNome());
             System.out.printf("Descricao: %s\n", p.getDescricao());
             System.out.printf("Marca: %s\n", p.getMarca());
-            System.out.printf("preço: %s\n", p.getPreco());
+            System.out.printf("Preço Atual: %s\n", p.getPreco());
+            
+            System.out.println("Histórico de Preços:");
+            if (p.getHistoricoDePrecos().isEmpty()) {
+                System.out.println("  Nenhum registro encontrado.");
+            } else {
+                for (Preco h : p.getHistoricoDePrecos()) {
+                    System.out.printf("  - Data: %s | Valor: %s\n", h.getDataAtual(), h.getPreco());
+                }
+            }
             System.out.println("---------------------------------\n");
         }
     }
@@ -70,7 +100,17 @@ public class ProdutoService implements ServiceInterface {
                 managed.setNome(atualizado.getNome());
                 managed.setMarca(atualizado.getMarca());
                 managed.setDescricao(atualizado.getDescricao());
-                managed.setPreco(atualizado.getPreco());
+                
+                // Se o preço foi alterado, adicionamos no histórico
+                if (!managed.getPreco().equals(atualizado.getPreco())) {
+                    Preco novoPreco = new Preco();
+                    novoPreco.setPreco(atualizado.getPreco());
+                    novoPreco.setDataAtual(new Date());
+                    novoPreco.setProduto(managed);
+                    
+                    managed.getHistoricoDePrecos().add(novoPreco);
+                    managed.setPreco(atualizado.getPreco());
+                }
             }
             tx.commit();
         }
@@ -78,7 +118,7 @@ public class ProdutoService implements ServiceInterface {
 
     private List<Produto> listar() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("from Produto order by nome", Produto.class)
+            return session.createQuery("select distinct p from Produto p left join fetch p.historicoDePrecos order by p.nome", Produto.class)
                     .getResultList();
         }
     }

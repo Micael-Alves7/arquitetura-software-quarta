@@ -23,6 +23,9 @@ void main() {
                 case 4:
                     deletarProdutos(service);
                     break;
+                case 5:
+                    atualizarPrecoProduto(service);
+                    break;
                 case 0:
                     menuAtivo = false;
                     break;
@@ -72,6 +75,21 @@ public void deletarProdutos(ServiceInterface service) {
     service.remove(produto);
 }
 
+public void atualizarPrecoProduto(ServiceInterface service) {
+    System.out.println("Atualmente temos os seguintes produtos cadastrados: ");
+    service.list();
+    int indice = Integer.parseInt(IO.readln("Digite o indice do produto que deseja atualizar o preço: "));
+
+    Produto produto = (Produto) service.findByIndex(indice);
+    System.out.println("O preço atual do produto " + produto.getNome() + " é: " + produto.getPreco());
+    
+    float novoPreco = Float.parseFloat(IO.readln("Informe o novo preco do produto: "));
+    produto.setPreco(novoPreco);
+
+    service.edit(produto, produto.getId());
+    System.out.println("Preço atualizado com sucesso!");
+}
+
 
 public Integer menu() {
     System.out.println("Digite a opção desejada: ");
@@ -79,6 +97,7 @@ public Integer menu() {
     System.out.println("2 = Listar os produtos");
     System.out.println("3 = Editar um produto");
     System.out.println("4 = Deletar um produto");
+    System.out.println("5 = Atualizar preço de um produto");
     System.out.println("0 = Sair");
 
     int opcao = Integer.parseInt(IO.readln());

@@ -9,5 +9,6 @@ public interface ServiceInterface {
     void remove(EntityInterface entity);
     void list();
     void edit(EntityInterface entity, UUID id);
+    void salvarPreco(EntityInterface entity);
     EntityInterface findByIndex(int index);
 }
