@@ -45,6 +45,13 @@ public class Produto implements EntityInterface {
             fetch = FetchType.LAZY)
     private List<Preco> historicoDePrecos = new ArrayList<>();
 
+    @OneToMany(
+            mappedBy = "produto",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    private List<ProdutoLink> links = new ArrayList<>();
+
     public Produto() {
     }
 
@@ -110,6 +117,14 @@ public class Produto implements EntityInterface {
 
     public void setHistoricoDePrecos(List<Preco> historicoDePrecos) {
         this.historicoDePrecos = historicoDePrecos;
+    }
+
+    public List<ProdutoLink> getLinks() {
+        return links;
+    }
+
+    public void setLinks(List<ProdutoLink> links) {
+        this.links = links;
     }
 
     @Override

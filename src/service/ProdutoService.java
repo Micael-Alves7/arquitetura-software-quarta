@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import domain.Preco;
+import domain.ProdutoLink;
 
 public class ProdutoService implements ServiceInterface {
 
@@ -75,9 +76,20 @@ public class ProdutoService implements ServiceInterface {
                 System.out.println("  Nenhum registro encontrado.");
             } else {
                 for (Preco h : p.getHistoricoDePrecos()) {
-                    System.out.printf("  - Data: %s | Valor: %s\n", h.getDataAtual(), h.getPreco());
+                    String infoLoja = (h.getLoja() != null) ? " | Loja: " + h.getLoja() : "";
+                    System.out.printf("  - Data: %s | Valor: %s%s\n", h.getDataAtual(), h.getPreco(), infoLoja);
                 }
             }
+            
+            System.out.println("Links Cadastrados:");
+            if (p.getLinks() == null || p.getLinks().isEmpty()) {
+                System.out.println("  Nenhum link cadastrado.");
+            } else {
+                for (ProdutoLink link : p.getLinks()) {
+                    System.out.printf("  - %s: %s\n", link.getLoja(), link.getUrl());
+                }
+            }
+            
             System.out.println("---------------------------------\n");
         }
     }
@@ -116,10 +128,84 @@ public class ProdutoService implements ServiceInterface {
         }
     }
 
+    public void adicionarLink(UUID produtoId, String loja, String url) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Transaction tx = session.beginTransaction();
+            Produto managed = session.get(Produto.class, produtoId);
+            if (managed != null) {
+                ProdutoLink link = new ProdutoLink(loja, url, managed);
+                managed.getLinks().add(link);
+                session.merge(managed);
+            }
+            tx.commit();
+        }
+    }
+
+    public void popularDadosIniciais() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Transaction tx = session.beginTransaction();
+            
+            Long count = session.createQuery("select count(p) from Produto p where p.nome = 'PlayStation 5'", Long.class).uniqueResult();
+            
+            if (count == null || count == 0) {
+                Produto ps5 = new Produto("PS5-001", "PlayStation 5", "Sony", "Console PlayStation 5", 3799.00f);
+                ps5.getLinks().add(new ProdutoLink("Amazon", "https://www.amazon.com.br/PlayStation-Console-PlayStation%C2%AE5/dp/B088GNRX3J/", ps5));
+                ps5.getLinks().add(new ProdutoLink("Kabum", "https://www.kabum.com.br/produto/989702/console-sony-playstation-5-ssd-825gb-controle-sem-fio-dualsense-2-jogos-digitais-edicao-digital", ps5));
+                
+                Preco precoPs5 = new Preco();
+                precoPs5.setPreco(3799.00f);
+                precoPs5.setDataAtual(new Date());
+                precoPs5.setProduto(ps5);
+                ps5.getHistoricoDePrecos().add(precoPs5);
+                
+                session.persist(ps5);
+            }
+
+            Long countXbox = session.createQuery("select count(p) from Produto p where p.nome = 'Xbox One'", Long.class).uniqueResult();
+            
+            if (countXbox == null || countXbox == 0) {
+                Produto xbox = new Produto("XBOX-001", "Xbox One", "Microsoft", "Console Xbox One", 2500.0f);
+                xbox.getLinks().add(new ProdutoLink("Amazon", "https://www.amazon.com.br/Microsoft-All-Digital-Console-controle-branco/dp/B09P7CT2W6/", xbox));
+                xbox.getLinks().add(new ProdutoLink("Kabum", "https://www.kabum.com.br/produto/200089/console-microsoft-xbox-series-s-512gb-branco-rrs-00006", xbox));
+                
+                Preco precoXbox = new Preco();
+                precoXbox.setPreco(2500.0f);
+                precoXbox.setDataAtual(new Date());
+                precoXbox.setProduto(xbox);
+                xbox.getHistoricoDePrecos().add(precoXbox);
+                
+                session.persist(xbox);
+            }
+
+            Long countIphone = session.createQuery("select count(p) from Produto p where p.nome = 'iPhone 17'", Long.class).uniqueResult();
+            
+            if (countIphone == null || countIphone == 0) {
+                Produto iphone = new Produto("IPH17-001", "iPhone 17", "Apple", "Smartphone Apple iPhone 17 256GB", 8000.0f);
+                iphone.getLinks().add(new ProdutoLink("Amazon", "https://www.amazon.com.br/Apple-iPhone-17-256-GB/dp/B0GQWK8Y7F/", iphone));
+                iphone.getLinks().add(new ProdutoLink("Kabum", "https://www.kabum.com.br/produto/925367/iphone-17-apple-256gb-camera-dupla-fusion-48mp-tela-6-3-super-retina-xdr-preto", iphone));
+                
+                Preco precoIphone = new Preco();
+                precoIphone.setPreco(8000.0f);
+                precoIphone.setDataAtual(new Date());
+                precoIphone.setProduto(iphone);
+                iphone.getHistoricoDePrecos().add(precoIphone);
+                
+                session.persist(iphone);
+            }
+            
+            tx.commit();
+        }
+    }
+
     private List<Produto> listar() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("select distinct p from Produto p left join fetch p.historicoDePrecos order by p.nome", Produto.class)
+            List<Produto> produtos = session.createQuery("select p from Produto p order by p.nome", Produto.class)
                     .getResultList();
+            for (Produto p : produtos) {
+                org.hibernate.Hibernate.initialize(p.getHistoricoDePrecos());
+                org.hibernate.Hibernate.initialize(p.getLinks());
+            }
+            return produtos;
         }
     }
 }

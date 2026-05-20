@@ -14,5 +14,6 @@
 
         <mapping class="domain.Produto"/>
         <mapping class="domain.Preco"/>
+        <mapping class="domain.ProdutoLink"/>
     </session-factory>
 </hibernate-configuration>

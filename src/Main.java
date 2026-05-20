@@ -2,9 +2,14 @@ import domain.Produto;
 import infra.HibernateUtil;
 import service.ProdutoService;
 import service.ServiceInterface;
+import service.CrawlerService;
 
 void main() {
     ProdutoService service = new ProdutoService();
+    CrawlerService crawlerService = new CrawlerService();
+    
+    // Popula dados iniciais (PS5 e Xbox One) com seus links
+    service.popularDadosIniciais();
 
     try {
         boolean menuAtivo = true;
@@ -25,6 +30,12 @@ void main() {
                     break;
                 case 5:
                     atualizarPrecoProduto(service);
+                    break;
+                case 6:
+                    adicionarLinkAoProduto(service);
+                    break;
+                case 7:
+                    crawlerService.executarCrawler();
                     break;
                 case 0:
                     menuAtivo = false;
@@ -90,6 +101,19 @@ public void atualizarPrecoProduto(ServiceInterface service) {
     System.out.println("Preço atualizado com sucesso!");
 }
 
+public void adicionarLinkAoProduto(ServiceInterface service) {
+    System.out.println("Atualmente temos os seguintes produtos cadastrados: ");
+    service.list();
+    int indice = Integer.parseInt(IO.readln("Digite o indice do produto que deseja adicionar um link: "));
+
+    Produto produto = (Produto) service.findByIndex(indice);
+    
+    String loja = IO.readln("Informe o nome da loja (ex: Amazon, Kabum): ");
+    String url = IO.readln("Informe a URL do produto na loja: ");
+    
+    ((ProdutoService) service).adicionarLink(produto.getId(), loja, url);
+    System.out.println("Link adicionado com sucesso!");
+}
 
 public Integer menu() {
     System.out.println("Digite a opção desejada: ");
@@ -98,6 +122,8 @@ public Integer menu() {
     System.out.println("3 = Editar um produto");
     System.out.println("4 = Deletar um produto");
     System.out.println("5 = Atualizar preço de um produto");
+    System.out.println("6 = Adicionar Link de Loja a um produto");
+    System.out.println("7 = Executar Crawler de Preços (Buscar menores preços)");
     System.out.println("0 = Sair");
 
     int opcao = Integer.parseInt(IO.readln());
